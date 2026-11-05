@@ -1,0 +1,26 @@
+{
+  "session_id": "b63a87b9-7ac5-4ab4-9229-c80f82daaef1",
+  "model": {
+    "id": "claude-sonnet-4-5",
+    "display_name": "Sonnet 4.5"
+  },
+  "workspace": {
+    "current_dir": "."
+  },
+  "context_window": {
+    "context_window_size": 200000,
+    "used_percentage": 38,
+    "current_usage": {
+      "input_tokens": 16000,
+      "cache_read_input_tokens": 60000,
+      "cache_creation_input_tokens": 0
+    }
+  },
+  "cost": {
+    "total_cost_usd": 0.128
+  },
+  "rate_limits": {
+    "five_hour": { "used_percentage": 24 },
+    "seven_day": { "used_percentage": 12 }
+  }
+}

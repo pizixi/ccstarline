@@ -1,0 +1,8 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "\"C:/path/to/ccstarline.exe\" --color",
+    "padding": 0,
+    "refreshInterval": 5
+  }
+}

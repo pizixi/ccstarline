@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "版本号（例如 1.0.2），留空则读取 main.go 中的 version"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go vet ./...
+      - run: go test ./...
+
+  tag:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.version.outputs.release }}
+      tag: ${{ steps.version.outputs.tag }}
+      number: ${{ steps.version.outputs.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve version and create tag
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "${REF_TYPE}" = "tag" ]; then
+            raw="${REF_NAME}"
+          elif [ -n "${INPUT_VERSION}" ]; then
+            raw="${INPUT_VERSION}"
+          else
+            raw="$(sed -nE 's/^var version = "([^"]+)".*/\1/p' main.go | head -n1)"
+          fi
+          raw="${raw#v}"
+          if ! printf '%s' "${raw}" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?'; then
+            echo "::error::无法识别版本号 '${raw}'"
+            exit 1
+          fi
+          tag="v${raw}"
+          release=true
+          if [ "${EVENT_NAME}" = "push" ] && [ "${REF_TYPE}" = "branch" ]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+              echo "标签 ${tag} 已存在，跳过发布。"
+              release=false
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git tag -a "${tag}" -m "ccstarline ${tag}"
+              git push origin "${tag}"
+            fi
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "number=${raw}" >> "${GITHUB_OUTPUT}"
+          echo "release=${release}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: [test, tag]
+    if: needs.tag.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build archive
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          VERSION: ${{ needs.tag.outputs.number }}
+        run: |
+          set -euo pipefail
+          name="ccstarline_${VERSION}_${GOOS}_${GOARCH}"
+          bin="ccstarline"
+          if [ "${GOOS}" = "windows" ]; then
+            bin="ccstarline.exe"
+          fi
+          mkdir -p "stage/${name}" dist
+          go build -trimpath -buildvcs=false \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o "stage/${name}/${bin}" .
+          cp README.md "stage/${name}/"
+          if [ "${GOOS}" = "windows" ]; then
+            (cd "stage/${name}" && zip -q -r "../../dist/${name}.zip" "${bin}" README.md)
+          else
+            tar -C "stage/${name}" -czf "dist/${name}.tar.gz" "${bin}" README.md
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish release
+    needs: [tag, build]
+    if: needs.tag.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create checksums
+        working-directory: dist
+        run: sha256sum *.tar.gz *.zip > checksums.txt
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.tag.outputs.tag }}
+          name: ccstarline ${{ needs.tag.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
