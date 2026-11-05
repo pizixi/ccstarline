@@ -16,7 +16,7 @@ import (
 
 // version is overridden at build time with
 // -ldflags "-X main.version=..." by the release workflow.
-var version = "1.0.1"
+var version = "1.0.2"
 
 // Claude Code supplies one complete JSON snapshot on stdin for each repaint.
 type Snapshot struct {

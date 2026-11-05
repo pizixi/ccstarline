@@ -149,10 +149,10 @@ func buildSegments(s Snapshot, git *GitState, cfg Config, now time.Time, ascii b
 		case "cost":
 			if s.Cost != nil && s.Cost.USD != nil {
 				cost := math.Max(0, *s.Cost.USD)
-				add(name, "docker_bg", "dark", icon(" ", "$")+fmt.Sprintf("%.3f", cost))
+				add(name, "cost_bg", "dark", icon(" ", "$")+fmt.Sprintf("%.3f", cost))
 			}
 		case "time":
-			add(name, "time_bg", "dark", icon(" ", "")+now.Format(cfg.Options.TimeLayout), icon(" ", "")+now.Format("15:04"))
+			add(name, "time_bg", "light", icon(" ", "")+now.Format(cfg.Options.TimeLayout), icon(" ", "")+now.Format("15:04"))
 		case "tokens":
 			if u := s.Context.Usage; u != nil && s.Context.Size > 0 {
 				text := formatTokens(u.Input+u.Read+u.Write) + "/" + formatTokens(s.Context.Size)
@@ -160,7 +160,7 @@ func buildSegments(s Snapshot, git *GitState, cfg Config, now time.Time, ascii b
 			}
 		case "session":
 			if s.SessionID != "" {
-				add(name, "user_bg", "light", icon("󰘳", "sid")+" "+shorten(s.SessionID, 8, ascii))
+				add(name, "session_bg", "dark", icon("󰘳", "sid")+" "+shorten(s.SessionID, 8, ascii))
 			}
 		}
 	}

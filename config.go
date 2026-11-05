@@ -29,20 +29,22 @@ type Options struct {
 
 func defaultConfig() Config {
 	return Config{
-		// 配色使用 0xRRGGBB；保留参考文件中的 ribbon 色带。
+		// 配色使用 0xRRGGBB；模块使用独立底色，上下文用绿 / 黄 / 红表示占用等级。
 		Colors: map[string]RGB{
 			"light":           rgb(0xfff6fb), // 浅色文字
 			"dark":            rgb(0x252533), // 深色文字
 			"user_bg":         rgb(0x9857a4), // 模型：紫色
-			"directory_bg":    rgb(0xdb788c), // 目录 / 高占用警示：玫瑰粉
-			"git_bg":          rgb(0xedb57c), // Git / 中占用警示：杏色
-			"language_bg":     rgb(0x83bed2), // 上下文：浅蓝
-			"tokens_bg":       rgb(0xa78bd0), // Token：薰衣草紫
+			"directory_bg":    rgb(0x649bc7), // 目录：天蓝
+			"git_bg":          rgb(0xd6ad85), // Git：沙棕
+			"language_bg":     rgb(0x9a9a9a), // 未知上下文：中性灰
+			"tokens_bg":       rgb(0xbaa0e0), // Token：浅薰衣草紫
 			"context_low_bg":  rgb(0xa3be8c), // 上下文：低占用淡绿
-			"context_mid_bg":  rgb(0xe6b07a), // 上下文：中占用淡橘
-			"context_high_bg": rgb(0xd98b8b), // 上下文：高占用淡红
-			"docker_bg":       rgb(0x41a6a0), // 额度与费用：青绿
-			"time_bg":         rgb(0x83a7d8), // 时间：蓝色
+			"context_mid_bg":  rgb(0xf2d56b), // 上下文：中占用明黄
+			"context_high_bg": rgb(0xf07167), // 上下文：高占用珊瑚红
+			"docker_bg":       rgb(0x41a6a0), // 额度：青绿
+			"cost_bg":         rgb(0xe7ded0), // 费用：米白
+			"time_bg":         rgb(0x56677d), // 时间：深灰蓝，搭配浅色文字
+			"session_bg":      rgb(0xe080b0), // 会话：粉色
 		},
 		Directory: DirectoryStyle{
 			Length: 3, Symbol: "…/",
